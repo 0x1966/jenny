@@ -1,0 +1,162 @@
+import {readFileSync} from 'fs'
+import {sep} from 'path'
+import {glob} from 'glob'
+import {Jenkins} from './jenkins'
+import {Xml} from './xml'
+
+type JobDescriptor = {
+  source: string
+  name: string
+  pipelineScript: string
+}
+
+type ViewDescriptor = {
+  source: string
+  name: string
+  regex: string
+}
+
+export class JenkinsHighlevel {
+  private jenkins: Jenkins
+
+  static of(baseUrl: string, authUser: string, authToken: string): JenkinsHighlevel {
+    return new JenkinsHighlevel(baseUrl, authUser, authToken)
+  }
+
+  private constructor(baseURL: string, authUser: string, authToken: string) {
+    this.jenkins = Jenkins.of(baseURL, authUser, authToken)
+  }
+
+  async createListViewWithRegEx(name: string, regex: string): Promise<string> {
+    return this.jenkins
+      .createView(name)
+      .then((name) => this.jenkins.getViewConfig(name))
+      .then((config) =>
+        this.jenkins.updateViewConfig(
+          name,
+          Xml.of(config).withTextElementAdded('hudson.model.ListView', 'includeRegex', regex).get(),
+        ),
+      )
+      .then((config) => name)
+  }
+
+  async deleteAllViews(): Promise<number> {
+    return this.jenkins
+      .listViews()
+      .then((views) => Promise.all(views.filter((v) => v.toLowerCase() !== 'all').map((v) => this.jenkins.deleteView(v))))
+      .then((results) => results.length)
+  }
+
+  async createJob(template: string, name: string, script: string): Promise<string> {
+    // const script = readFileSync(scriptFile, 'utf8')
+    return this.jenkins
+      .getJobConfig(template)
+      .then((config) => Xml.of(config).withTextValueSet('script', script).get())
+      .then((config) => this.jenkins.createJob(name, config))
+      .then((response) => name)
+  }
+
+  async updateJobPipelineScript(name: string, script: string): Promise<string> {
+    // const script = readFileSync(scriptFile, 'utf8')
+    return this.jenkins
+      .getJobConfig(name)
+      .then((config) => Xml.of(config).withTextValueSet('script', script).get())
+      .then((config) => this.jenkins.updateJobConfig(name, config))
+      .then((response) => name)
+  }
+
+  async syncJobs(namePrefix: string, jobTemplate: string, path: string): Promise<any> {
+    return Promise.all([
+      glob('**/Jenkinsfile', {cwd: path}).then((files) =>
+        files.filter(isValidJobSource).map(deferJobDescriptor(namePrefix, path)),
+      ),
+      this.jenkins.listJobs(),
+    ])
+      .then((values) => {
+        const [descriptors, existingJobs]: [JobDescriptor[], string[]] = values
+        return descriptors.map((desc) =>
+          exists(existingJobs, desc.name)
+            ? this.updateJobPipelineScript(desc.name, desc.pipelineScript)
+            : this.createJob(jobTemplate, desc.name, desc.pipelineScript),
+        )
+      })
+      .then((promises) => Promise.all(promises))
+  }
+
+  async syncViews(namePrefix: string, path: string): Promise<any> {
+    return Promise.all([
+      glob('**/Jenkinsfile', {cwd: path}).then((files) => files.filter(isValidJobSource).map(deferViewDescriptor(namePrefix))),
+      this.jenkins.listViews(),
+    ])
+      .then((values) => {
+        const [descriptors, existingViews]: [ViewDescriptor[], string[]] = values
+
+        // --> this hack removes duplicates; TODO think of a solution, which has improved readability
+        const uniqueDescriptors = descriptors.filter((item, pos) => descriptors.findIndex((d) => d.name === item.name) == pos)
+
+        return uniqueDescriptors
+          .filter((desc) => !exists(existingViews, desc.name))
+          .map((desc) => this.createListViewWithRegEx(desc.name, desc.regex))
+      })
+      .then((promises) => Promise.all(promises))
+  }
+}
+
+function exists(values: string[], value: string): boolean {
+  return values.some((v) => v === value)
+}
+
+function isValidJobSource(file: string): boolean {
+  const tokens = file.split(sep)
+  return tokens && tokens.length >= 2 && tokens[tokens.length - 1] === 'Jenkinsfile'
+}
+
+function deferJobDescriptor(namePrefix: string, root: string): (file: string) => JobDescriptor {
+  return (file: string) => ({
+    source: file,
+    name: deferJobName(namePrefix, file),
+    pipelineScript: readFileSync(`${root}${sep}${file}`, 'utf8'),
+  })
+}
+
+function deferViewDescriptor(namePrefix: string): (file: string) => ViewDescriptor {
+  return (file: string) => ({
+    source: file,
+    name: deferViewName(namePrefix, file),
+    regex: deferViewRegex(namePrefix, file),
+  })
+}
+
+function deferJobName(namePrefix: string, file: string): string {
+  const tokens = file.split(sep)
+  if (tokens && tokens.length >= 2) {
+    return [namePrefix, ...tokens.slice(0, -1).map(beautify)].join(' - ')
+  }
+  return ''
+}
+
+function deferViewName(namePrefix: string, file: string): string {
+  const tokens = file.split(sep)
+  if (tokens && tokens.length >= 2) {
+    return [namePrefix, ...tokens.slice(0, -2).map(beautify)].join(' - ')
+  }
+  return ''
+}
+
+function deferViewRegex(namePrefix: string, file: string): string {
+  const tokens = file.split(sep)
+  if (tokens && tokens.length >= 2) {
+    return `${[namePrefix, ...tokens.slice(0, -2).map(beautify)].join(' - ')} - (.*)`
+  }
+  return ''
+}
+
+function beautify(value: string): string {
+  const tokens = value.split(/[_-]/)
+  const result = tokens.map(capitalizeFirstLetter).join(' ')
+  return result
+}
+
+function capitalizeFirstLetter(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1)
+}

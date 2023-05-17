@@ -1,0 +1,48 @@
+{
+  "name": "jenny",
+  "version": "0.1.0-SNAPSHOT",
+  "description": "...",
+  "main": "src/index.ts",
+  "scripts": {
+    "build": "npm run lint && rimraf dist/ && tsc",
+    "start": "npm run build && node dist/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint src/**/*.ts"
+  },
+  "author": "",
+  "license": "ISC",
+  "bin": {
+    "jenny": "./dist/index.js"
+  },
+  "dependencies": {
+    "@xmldom/xmldom": "^0.8.7",
+    "axios": "^1.4.0",
+    "chokidar": "^3.5.3",
+    "form-data": "^4.0.0",
+    "glob": "^10.2.4",
+    "got": "^11.8.6",
+    "js-yaml": "^4.1.0",
+    "lodash": "^4.17.21",
+    "node-fetch": "^2.6.6",
+    "node-libcurl": "^3.0.0",
+    "querystring": "^0.2.1",
+    "yargs": "^17.7.2"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.5",
+    "@types/lodash": "^4.14.194",
+    "@types/node": "^20.1.2",
+    "@types/node-fetch": "^2.6.3",
+    "@types/yargs": "^17.0.24",
+    "@typescript-eslint/eslint-plugin": "^5.59.5",
+    "@typescript-eslint/parser": "^5.59.5",
+    "eslint": "^8.40.0",
+    "eslint-config-prettier": "^8.8.0",
+    "eslint-plugin-prettier": "^4.2.1",
+    "nodemon": "^2.0.22",
+    "prettier": "^2.8.8",
+    "rimraf": "^5.0.0",
+    "ts-node": "^10.9.1",
+    "typescript": "^5.0.4"
+  }
+}

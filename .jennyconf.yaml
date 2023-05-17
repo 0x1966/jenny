@@ -1,0 +1,5 @@
+baseUrl     : http://localhost:8080
+user        : <USER>
+token       : <TOKEN>
+jobTemplate : <JOB_TEMPLATE>
+namePrefix  : <NAME_PREFIX>
