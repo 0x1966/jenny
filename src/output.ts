@@ -8,4 +8,5 @@ export function printWarning(warning: string, reason?: Error) {
 
 export function printError(error: string, reason?: Error) {
   console.error(reason ? `${error}: ${reason.message}` : error)
+  // console.error(reason)
 }
