@@ -5,5 +5,5 @@ export type Config = {
     jobTemplate: string;
     namePrefix: string;
 };
-export declare function loadConfig(onError?: (configFilename: string, error: any) => void): Partial<Config>;
+export declare function configFromArgs(onError?: (configFilename: string, error: any) => void): (argv: any) => Config;
 //# sourceMappingURL=config.d.ts.map

@@ -2,21 +2,13 @@
 import yargs from 'yargs'
 import {hideBin} from 'yargs/helpers'
 
-import {loadConfig, Config} from './config'
+import {configFromArgs} from './config'
 import {printWarning} from './output'
 import {Command} from './command'
 
-const config = loadConfig((configFilename, error) => printWarning(`error loading "${configFilename}"`, error))
+const DEFAULT_CONFIG_FILE = './.jennyconf.yaml'
 
-function configFromArgs(argv: any): Config {
-  return {
-    baseUrl: argv.baseUrl,
-    user: argv.user,
-    token: argv.token,
-    jobTemplate: argv.jobTemplate,
-    namePrefix: argv.namePrefix,
-  }
-}
+const config = configFromArgs((configFilename, error) => printWarning(`error loading "${configFilename}"`, error))
 
 yargs(hideBin(process.argv))
   .command(
@@ -27,7 +19,7 @@ yargs(hideBin(process.argv))
         describe: 'select jobs in view',
         type: 'string',
       }),
-    (argv) => Command.of(configFromArgs(argv)).deleteJobsAndViewsBasedOnPath(argv.path as string),
+    (argv) => Command.of(config(argv)).deleteJobsAndViewsBasedOnPath(argv.path as string),
   )
   .command(
     'sync [path]',
@@ -37,7 +29,7 @@ yargs(hideBin(process.argv))
         describe: 'select jobs in view',
         type: 'string',
       }),
-    (argv) => Command.of(configFromArgs(argv)).syncJobsAndViewsBasedOnPath(argv.path as string),
+    (argv) => Command.of(config(argv)).syncJobsAndViewsBasedOnPath(argv.path as string),
   )
   // .command(
   //   'list-jobs [view]',
@@ -220,29 +212,34 @@ yargs(hideBin(process.argv))
   //   default: false,
   //   description: 'Run with verbose logging',
   // })
+  .option('configFile', {
+    type: 'string',
+    default: DEFAULT_CONFIG_FILE,
+    description: 'Config file (Yaml)',
+  })
   .option('baseUrl', {
     type: 'string',
-    default: config.baseUrl || 'http://localhost:8080',
+    default: undefined,
     description: 'Jenkins Base URL',
   })
   .option('user', {
     type: 'string',
-    default: config.user || undefined,
+    default: undefined,
     description: 'Jenkins username',
   })
   .option('token', {
     type: 'string',
-    default: config.token || undefined,
+    default: undefined,
     description: 'Jenkins authentication token',
   })
   .option('jobTemplate', {
     type: 'string',
-    default: config.jobTemplate || undefined,
+    default: undefined,
     description: 'the pipeline job template to clone, when creating new jobs',
   })
   .option('namePrefix', {
     type: 'string',
-    default: config.namePrefix || undefined,
+    default: undefined,
     description: 'the name prefix to use when naming jobs and views based on directories',
   })
   .parse()

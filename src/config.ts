@@ -9,13 +9,24 @@ export type Config = {
   namePrefix: string
 }
 
-const CONFIG_FILE = '.jennyconf.yaml'
+export function configFromArgs(onError?: (configFilename: string, error: any) => void): (argv: any) => Config {
+  return (argv: any) => {
+    const file = loadConfig(argv.configFile, onError)
+    return {
+      baseUrl: argv.baseUrl || file.baseUrl || 'localhost:8080',
+      user: argv.user || file.user || '',
+      token: argv.token || file.token || '',
+      jobTemplate: argv.jobTemplate || file.jobTemplate || '',
+      namePrefix: argv.namePrefix || file.namePrefix || '',
+    }
+  }
+}
 
-export function loadConfig(onError?: (configFilename: string, error: any) => void): Partial<Config> {
+function loadConfig(configFile: string, onError?: (configFilename: string, error: any) => void): Partial<Config> {
   try {
-    return yamlLoad(readFileSync(`./${CONFIG_FILE}`, 'utf8')) as Partial<Config>
+    return yamlLoad(readFileSync(configFile, 'utf8')) as Partial<Config>
   } catch (err) {
-    !onError || onError(CONFIG_FILE, err)
+    !onError || onError(configFile, err)
     return {}
   }
 }
