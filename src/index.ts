@@ -16,7 +16,7 @@ yargs(hideBin(process.argv))
     'delete jenkins jobs and views according to given path',
     (yargs) =>
       yargs.positional('path', {
-        describe: 'select jobs in view',
+        describe: 'path to look for Jenkinsfiles',
         type: 'string',
       }),
     (argv) => Command.of(config(argv)).deleteJobsAndViewsBasedOnPath(argv.path as string),
@@ -26,10 +26,20 @@ yargs(hideBin(process.argv))
     'one-time sync jenkins jobs and views according to given path',
     (yargs) =>
       yargs.positional('path', {
-        describe: 'select jobs in view',
+        describe: 'path to look for Jenkinsfiles',
         type: 'string',
       }),
     (argv) => Command.of(config(argv)).syncJobsAndViewsBasedOnPath(argv.path as string),
+  )
+  .command(
+    'watch [path]',
+    'watch given path and continuously sync jenkins jobs and views according to file changes',
+    (yargs) =>
+      yargs.positional('path', {
+        describe: 'path to look for Jenkinsfiles',
+        type: 'string',
+      }),
+    (argv) => Command.of(config(argv)).watchAndSyncJobsAndViewsBasedOnPath(argv.path as string),
   )
   // .command(
   //   'list-jobs [view]',

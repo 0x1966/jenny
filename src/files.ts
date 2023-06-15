@@ -37,6 +37,10 @@ export class Files {
 
     return {jobs, views}
   }
+
+  getJobByFilename(path: string): Job {
+    return jobByFilename(this.workingDir, this.namePrefix, path.split(sep))
+  }
 }
 
 function jobByFilename(workingDir: string, namePrefix: string, file: string[]): Job {

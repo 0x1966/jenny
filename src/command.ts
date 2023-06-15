@@ -3,6 +3,7 @@ import {Files, JobsAndViews as FilesJobsAndViews} from './files'
 import {Config} from './config'
 
 import {println, printError} from './output'
+import {watch} from './watch'
 
 export class Command {
   static of(config: Config): Command {
@@ -13,6 +14,32 @@ export class Command {
 
   private constructor(private config: Config) {
     this.jenkins = Jenkins.of(config.baseUrl, config.user, config.token)
+  }
+
+  watchAndSyncJobsAndViewsBasedOnPath(path: string) {
+    watch(path, '**/Jenkinsfile', {
+      change: this.onJenkinsfileChange.bind(this),
+    })
+  }
+
+  private async onJenkinsfileChange(workingDir: string, path: string) {
+    // get list of jenkins jobs and views
+    const jenkinsJobsAndViews = await this.jenkins.listJobsAndViews()
+
+    const job = await Files.of(workingDir, this.config.namePrefix).getJobByFilename(path)
+
+    // check, if a jenkins job exists for the identified job on the file system --> this job's script will be UPDATED
+    const exists = jenkinsJobsAndViews.jobs.some((name) => name === job.name)
+
+    // if job exists on jenkins, then update its script
+    if (exists) {
+      this.jenkins
+        .updateJobPipelineScript(job.name, job.script)
+        .then((n) => println(`[U] job "${n}"`))
+        .catch((e) => printError(`[!] error updating job "${job.name}"`, e))
+    } else {
+      printError(`[!] unable to update job "${job.name}" since no matching Jenkins job exists`)
+    }
   }
 
   async deleteJobsAndViewsBasedOnPath(path: string) {

@@ -142,6 +142,7 @@ export class Jenkins {
   // }
 
   async createJob(name: string, config: Document): Promise<string> {
+    // console.log('>>> ', Xml.of(config).getAsString())
     return axios(
       this.requestConfig({
         method: 'post',

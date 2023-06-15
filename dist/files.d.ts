@@ -17,5 +17,6 @@ export declare class Files {
     static of(workingDir: string, namePrefix: string): Files;
     private constructor();
     listJobsAndViews(): Promise<JobsAndViews>;
+    getJobByFilename(path: string): Job;
 }
 //# sourceMappingURL=files.d.ts.map
